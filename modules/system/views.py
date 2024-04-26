@@ -1,0 +1,279 @@
+from django.views import View
+from django.views.generic import DetailView, UpdateView, CreateView
+
+from django.db import transaction
+from django.urls import reverse_lazy
+from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.auth.views import LogoutView, LoginView, PasswordChangeView
+from django.contrib.auth.decorators import login_required
+
+from django.utils.decorators import method_decorator
+
+from django.http import JsonResponse
+
+
+
+
+
+
+from .models import Profile
+from .forms import UserUpdateForm, ProfileUpdateForm, UserRegisterForm, UserLoginForm, UserPasswordChangeForm
+
+
+
+
+
+class ProfileDetailView(DetailView):
+
+    """
+
+    Представление для просмотра профиля
+
+    """
+
+    model = Profile
+
+    context_object_name = 'profile'
+
+    template_name = 'system/profile_detail.html'
+    queryset = model.objects.all().select_related('user')
+
+
+
+
+    def get_context_data(self, **kwargs):
+
+        context = super().get_context_data(**kwargs)
+
+        context['title'] = f'Страница пользователя: {self.object.user.username}'
+
+        return context
+
+
+
+
+
+class ProfileUpdateView(UpdateView):
+
+    """
+
+    Представление для редактирования профиля 
+
+    """
+
+    model = Profile
+
+    form_class = ProfileUpdateForm
+
+    template_name = 'system/profile_edit.html'
+
+
+
+    def get_object(self, queryset=None):
+
+        return self.request.user.profile
+
+
+
+    def get_context_data(self, **kwargs):
+
+        context = super().get_context_data(**kwargs)
+
+        context['title'] = f'Редактирование профиля пользователя: {self.request.user.username}'
+
+        if self.request.POST:
+
+            context['user_form'] = UserUpdateForm(self.request.POST, instance=self.request.user)
+
+        else:
+
+            context['user_form'] = UserUpdateForm(instance=self.request.user)
+
+        return context
+
+
+
+    def form_valid(self, form):
+
+        context = self.get_context_data()
+
+        user_form = context['user_form']
+
+        with transaction.atomic():
+
+            if all([form.is_valid(), user_form.is_valid()]):
+
+                user_form.save()
+
+                form.save()
+
+            else:
+
+                context.update({'user_form': user_form})
+
+                return self.render_to_response(context)
+
+        return super(ProfileUpdateView, self).form_valid(form)
+
+
+
+    def get_success_url(self):
+
+        return reverse_lazy('profile_detail', kwargs={'slug': self.object.slug})
+    
+
+class UserRegisterView(SuccessMessageMixin, CreateView):
+
+    """
+
+    Представление регистрации на сайте с формой регистрации
+
+    """
+
+    form_class = UserRegisterForm
+
+    success_url = reverse_lazy('home')
+
+    template_name = 'system/user_register.html'
+
+    success_message = 'Вы успешно зарегистрировались. Можете войти на сайт!'
+
+
+
+    def get_context_data(self, **kwargs):
+
+        context = super().get_context_data(**kwargs)
+
+        context['title'] = 'Регистрация на сайте'
+
+        return context
+    
+
+class UserLoginView(SuccessMessageMixin, LoginView):
+
+    """
+
+    Авторизация на сайте
+
+    """
+
+    form_class = UserLoginForm
+
+    template_name = 'system/user_login.html'
+
+    next_page = 'home'
+
+    success_message = 'Добро пожаловать на сайт!'
+
+
+
+    def get_context_data(self, **kwargs):
+
+        context = super().get_context_data(**kwargs)
+
+        context['title'] = 'Авторизация на сайте'
+
+        return context
+    
+
+class UserLogoutView(LogoutView):
+
+    """
+
+    Выход с сайта
+
+    """
+
+    next_page = 'home'    
+
+
+class UserPasswordChangeView(SuccessMessageMixin, PasswordChangeView):
+
+    """
+
+    Изменение пароля пользователя
+
+    """
+
+    form_class = UserPasswordChangeForm
+
+    template_name = 'system/user_password_change.html'
+
+    success_message = 'Ваш пароль был успешно изменён!'
+
+
+
+    def get_context_data(self, **kwargs):
+
+        context = super().get_context_data(**kwargs)
+
+        context['title'] = 'Изменение пароля на сайте'
+
+        return context
+
+
+
+    def get_success_url(self):
+
+        return reverse_lazy('profile_detail', kwargs={'slug': self.request.user.profile.slug})
+
+
+@method_decorator(login_required, name='dispatch')
+
+class ProfileFollowingCreateView(View):
+
+    """
+
+    Создание подписки для пользователей
+
+    """
+
+    model = Profile
+
+
+
+    def is_ajax(self):
+
+        return self.request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
+
+    def post(self, request, slug):
+
+        user = self.model.objects.get(slug=slug)
+
+        profile = request.user.profile
+
+        if profile in user.followers.all():
+
+            user.followers.remove(profile)
+
+            message = f'Подписаться на {user}'
+
+            status = False
+
+        else:
+
+            user.followers.add(profile)
+
+            message = f'Отписаться от {user}'
+
+            status = True
+
+        data = {
+
+            'username': profile.user.username,
+
+            'get_absolute_url': profile.get_absolute_url(),
+
+            'slug': profile.slug,
+
+            'avatar': profile.get_avatar,
+
+            'message': message,
+
+            'status': status,
+
+        }
+
+        return JsonResponse(data, status=200)

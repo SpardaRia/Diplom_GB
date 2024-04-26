@@ -1,0 +1,80 @@
+
+<header class="mt-3">
+
+    <div class="px-3 py-2 text-bg-dark" style="border-radius: 10px 10px 0 0;">
+  
+      <div class="container">
+  
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+  
+          <a href="/" class="d-flex align-items-center my-2 my-lg-0 me-lg-auto text-white text-decoration-none">
+  
+            <img width="100" src="https://gagaru.club/uploads/posts/2023-02/1676597883_gagaru-club-p-raznotsvetnii-tsvetok-narisovannii-vkontak-84.png"/> 
+            <img width="300" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Lierre.svg/425px-Lierre.svg.png?20160320183952"/>
+  
+          </a>
+  
+  
+  
+          <ul class="nav col-12 col-lg-auto my-2 justify-content-center my-md-0 text-small">
+  
+            <li>
+  
+              <a href="{% url "home" %}" class="nav-link text-secondary">
+  
+                <svg class="bi d-block mx-auto mb-1" width="15" height="15"><use xlink:href="#home"></use></svg>
+  
+                Главная
+  
+              </a>
+              </li>
+              <li>
+                <a href="{% url "articles_create" %}" class="nav-link text-white">
+                  <svg class="bi d-block mx-auto mb-1" width="15" height="15"><use xlink:href="#speedometer2"></use></svg>
+                  Добавить статью
+                </a>
+              </li>
+            <li>
+                <a href="{% url 'latest_articles_feed' %}">
+                <svg class="bi d-block mx-auto mb-1" width="24" height="24"><use xlink:href="#speedometer2"></use></svg>
+                <img src="https://i.postimg.cc/T3tDfJ2C/rss2.jpg" width=”10px” alt="RSS" > 
+              </a>
+  
+            </li>
+  
+          </ul>
+  
+  
+  
+        </div>
+  
+      </div>
+  
+    </div>
+  
+    <div class="px-3 py-2 bg-light mb-3" style="border-radius: 0 0 10px 10px;">
+  
+      <div class="container d-flex flex-wrap justify-content-center">
+  
+        <form class="col-12 col-lg-auto mb-2 mb-lg-0 me-lg-auto" role="search">
+  
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+  
+        </form>
+  
+        {% if request.user.is_authenticated %}
+  
+          <a href="{% url "profile_detail" request.user.profile.slug %}" type="button" class="btn btn-secondary me-2"> {{ request.user.username }}</a>
+  
+          <a href="{% url "logout" %}" type="button" class="btn btn-primary">Выход</a>
+          {% else %}
+          <div class="text-end">
+            <a href="{% url "login" %}" type="button" class="btn btn-light text-dark me-2">Авторизация</a>
+            <a href="{% url "register" %}" type="button" class="btn btn-primary">Регистрация</a>
+          </div>
+          {% endif %}
+        </div>
+  
+    </div>
+
+  </header>
